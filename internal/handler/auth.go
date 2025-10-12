@@ -4,9 +4,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"safe_talk/pkg/models"
+	"safe_talk/pkg/utils"
 )
+
+func (h *Handler) auth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		userID, err := utils.JWTConfirm(token)
+		if err != nil {
+			h.l.Errorf("Ошибка при извлечении данных с токена. ОШИБКА: [%v]", err)
+			c.AbortWithStatus(401)
+			return
+		}
+		c.Set("user_id", userID)
+		c.Next()
+	}
+}
 
 func (h *Handler) registration(c *gin.Context) {
 	var user models.AuthData
@@ -76,8 +92,12 @@ func (h *Handler) getConn(c *gin.Context) {
 		return
 	}
 	defer conn.Close()
-	//userID := c.Value("user_uuid").(string)
-	userID := c.Query("user_uuid")
+	anyUserId, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(401, gin.H{"message": "не авторизован"})
+		return
+	}
+	userID := anyUserId.(string)
 	clients[userID] = conn
 
 	for {
@@ -103,4 +123,38 @@ func (h *Handler) getConn(c *gin.Context) {
 			toConn.WriteMessage(websocket.TextMessage, b)
 		}
 	}
+}
+
+func (h *Handler) getUserChats(c *gin.Context) {
+	value, find := c.Get("user_id")
+	if !find {
+		c.JSON(401, gin.H{"message": "Не авторизован ((("})
+		return
+	}
+	userID := value.(string)
+	chats, err := h.u.GetUserChats(userID)
+	if err != nil {
+		h.l.Errorf("Ошибка при получении данных с БД. ОШИБКА [%v]", err)
+		c.JSON(500, gin.H{"message": "Ошибка при обращение к БД"})
+		return
+	}
+
+	c.JSON(200, chats)
+}
+
+func (h *Handler) createChat(c *gin.Context) {
+	chat := struct {
+		UserIds []uuid.UUID `json:"user_ids"`
+	}{}
+
+	if err := c.ShouldBindJSON(&chat); err != nil {
+		c.JSON(400, gin.H{"message": "Проверьте данные"})
+		return
+	}
+
+	if err := h.u.CreateChat(chat.UserIds); err != nil {
+		c.JSON(500, gin.H{"message": "Ошибка на стороне сервера. Попробуйте позже"})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Успешно! Можете начать общение"})
 }

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
-	"log"
 	"regexp"
 	"time"
 )
@@ -56,8 +55,8 @@ func JWTConfirm(token string) (string, error) {
 		return []byte("secretKey"), nil
 	})
 	if err != nil || !parseT.Valid {
-		log.Println(err)
-		return "", errors.New("invalid token")
+		sprintf := fmt.Sprintf("invalid token. Err: %v", err)
+		return "", errors.New(sprintf)
 	}
 	if exp, ok := claims["exp"].(float64); ok {
 		if time.Unix(int64(exp), 0).Before(time.Now()) {

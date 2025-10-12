@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"encoding/json"
+	"github.com/google/uuid"
 	"safe_talk/pkg/models"
 	"safe_talk/pkg/utils"
 )
@@ -53,7 +55,13 @@ func (u *UseCase) SignIn(data models.AuthData) (int, string) {
 		return 500, "Ошибка при генерации токена"
 	}
 
-	return 200, jwt
+	res := struct {
+		Token  string
+		UserId string
+	}{Token: jwt, UserId: user.ID.String()}
+
+	temp, _ := json.MarshalIndent(res, " ", "")
+	return 200, string(temp)
 }
 
 func (u *UseCase) ResetPassword(data models.AuthData) (int, string) {
@@ -87,4 +95,29 @@ func (u *UseCase) GetNewMessages(userId string) ([]models.SMessage, error) {
 
 func (u *UseCase) AddMessage(msg models.SMessage) error {
 	return u.r.AddMessage(msg)
+}
+
+func (u *UseCase) GetUserChats(userId string) ([]models.Chat, error) {
+	return u.r.GetUserChat(userId)
+}
+
+func (u *UseCase) CreateChat(userIDs []uuid.UUID) error {
+	chatId, err := u.r.CreateChat(models.NChat{IsActive: true})
+	if err != nil {
+		u.l.Errorf("Ошибка при создании нового чата. ОШИБКА %v", err)
+		return err
+	}
+
+	for _, id := range userIDs {
+		user2Chats := models.User2Chats{
+			UserId: id,
+			ChatId: chatId,
+		}
+		if err := u.r.AddUsers2Chat(user2Chats); err != nil {
+			u.l.Errorf("Ошибка при добавлении пользователья в чат. ОШИБКА %v", err)
+			return err
+		}
+	}
+	return nil
+
 }

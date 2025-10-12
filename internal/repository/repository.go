@@ -43,3 +43,22 @@ func (r *Repository) GetUserMessages(userId string) ([]models.SMessage, error) {
 	var nMessages []models.SMessage
 	return nMessages, r.p.Where("to_user = ?", userId).Find(&nMessages).Error
 }
+
+func (r *Repository) GetUserChat(userId string) ([]models.Chat, error) {
+	//select c.id, u.login, c.last_message from chats c
+	//	join users2chats u2c on c.id = u2c.chat_id and u2c.user_id = ''
+	//	join users u on u2c.user_id = u.id;
+	var result []models.Chat
+	return result, r.p.Select("c.id, u.login, c.last_message").Table("chats c").
+		Joins("join users2chats u2c on c.id = u2c.chat_id and u2c.user_id = ?", userId).
+		Joins("join users u on u2c.user_id = u.id").
+		Scan(&result).Error
+}
+
+func (r *Repository) CreateChat(c models.NChat) (uuid.UUID, error) {
+	return c.ID, r.p.Create(&c).Error
+}
+
+func (r *Repository) AddUsers2Chat(m models.User2Chats) error {
+	return r.p.Create(&m).Error
+}

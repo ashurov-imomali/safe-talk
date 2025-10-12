@@ -31,6 +31,23 @@ func (SMessage) TableName() string {
 	return "messages"
 }
 
+type Chat struct {
+	Id          int
+	UserNick    string
+	LastMessage string
+}
+
+type NChat struct {
+	ID          uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	LastMessage string
+	IsActive    bool
+}
+
+type User2Chats struct {
+	UserId uuid.UUID
+	ChatId uuid.UUID
+}
+
 //
 //create table messages(
 //id serial primary key,
