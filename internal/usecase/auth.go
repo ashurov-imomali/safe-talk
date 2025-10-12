@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"encoding/json"
 	"github.com/google/uuid"
 	"safe_talk/pkg/models"
 	"safe_talk/pkg/utils"
@@ -32,7 +31,7 @@ func (u *UseCase) SignUp(data models.AuthData) (int, string) {
 	return 200, "Успешная регистрация. Поздравляю :)"
 }
 
-func (u *UseCase) SignIn(data models.AuthData) (int, string) {
+func (u *UseCase) SignIn(data models.AuthData) (int, interface{}) {
 	user, notFound, err := u.r.GetUserByLogin(data.Login)
 	if err != nil && notFound {
 		return 404, "Такого пользователя не существует :("
@@ -60,8 +59,7 @@ func (u *UseCase) SignIn(data models.AuthData) (int, string) {
 		UserId string
 	}{Token: jwt, UserId: user.ID.String()}
 
-	temp, _ := json.MarshalIndent(res, " ", "")
-	return 200, string(temp)
+	return 200, res
 }
 
 func (u *UseCase) ResetPassword(data models.AuthData) (int, string) {
@@ -89,23 +87,40 @@ func (u *UseCase) ResetPassword(data models.AuthData) (int, string) {
 	return 200, "Успешно. Можете войти в свой аккаунт :)"
 }
 
-func (u *UseCase) GetNewMessages(userId string) ([]models.SMessage, error) {
-	return u.r.GetUserMessages(userId)
+func (u *UseCase) GetNewMessages(chatId string) ([]models.SMessage, error) {
+	return u.r.GetUserMessages(chatId)
 }
 
-func (u *UseCase) AddMessage(msg models.SMessage) error {
-	return u.r.AddMessage(msg)
+func (u *UseCase) GetUsersByLogin(login string) ([]models.User, error) {
+	return u.r.GetUsersByLogin(login)
+}
+
+func (u *UseCase) AddMessage(msg models.SMessage) (string, error) {
+	user, err := u.r.GetChatUsers(msg.ChatId, msg.FromUser)
+	if err != nil {
+		u.l.Errorf("Ошибка при извлечении пользователей из БД. ОШИБКА %v", err)
+		return "", err
+	}
+	if err := u.r.AddMessage(models.SMessage{
+		Text:     msg.Text,
+		ChatId:   msg.ChatId,
+		FromUser: msg.FromUser,
+		ToUser:   user.ID.String(),
+	}); err != nil {
+		return "", err
+	}
+	return user.ID.String(), nil
 }
 
 func (u *UseCase) GetUserChats(userId string) ([]models.Chat, error) {
 	return u.r.GetUserChat(userId)
 }
 
-func (u *UseCase) CreateChat(userIDs []uuid.UUID) error {
+func (u *UseCase) CreateChat(userIDs []uuid.UUID) (string, error) {
 	chatId, err := u.r.CreateChat(models.NChat{IsActive: true})
 	if err != nil {
 		u.l.Errorf("Ошибка при создании нового чата. ОШИБКА %v", err)
-		return err
+		return "", err
 	}
 
 	for _, id := range userIDs {
@@ -115,9 +130,9 @@ func (u *UseCase) CreateChat(userIDs []uuid.UUID) error {
 		}
 		if err := u.r.AddUsers2Chat(user2Chats); err != nil {
 			u.l.Errorf("Ошибка при добавлении пользователья в чат. ОШИБКА %v", err)
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return chatId.String(), nil
 
 }

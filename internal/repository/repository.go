@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"safe_talk/pkg/logger"
@@ -39,9 +40,11 @@ func (r *Repository) AddMessage(message models.SMessage) error {
 	return r.p.Create(&message).Error
 }
 
-func (r *Repository) GetUserMessages(userId string) ([]models.SMessage, error) {
+func (r *Repository) GetUserMessages(chatId string) ([]models.SMessage, error) {
 	var nMessages []models.SMessage
-	return nMessages, r.p.Where("to_user = ?", userId).Find(&nMessages).Error
+	return nMessages, r.p.Select("m.*").Table("messages m").
+		Joins("join chats c on c.id = m.chat_id and c.id = ?", chatId).
+		Order("m.created_at desc").Scan(&nMessages).Error
 }
 
 func (r *Repository) GetUserChat(userId string) ([]models.Chat, error) {
@@ -61,4 +64,20 @@ func (r *Repository) CreateChat(c models.NChat) (uuid.UUID, error) {
 
 func (r *Repository) AddUsers2Chat(m models.User2Chats) error {
 	return r.p.Create(&m).Error
+}
+
+func (r *Repository) GetChatUsers(chatId, userId string) (models.User, error) {
+	//
+	//select * from users u
+	//	join users2chats u2c on u.id = u2c.user_id
+	//	join chats c on c.id = u2c.chat_id and c.id = ?
+	var user models.User
+	return user, r.p.Select("u.*").Table("users u").
+		Joins("join users2chats u2c on u.id = u2c.user_id and u.id != ?", userId).
+		Joins("join chats c on c.id = u2c.chat_id and c.id = ?", chatId).First(&user).Error
+}
+
+func (r *Repository) GetUsersByLogin(login string) ([]models.User, error) {
+	var users []models.User
+	return users, r.p.Where("login ilike ?", fmt.Sprintf(`%%%s%%`, login)).Find(&users).Error
 }

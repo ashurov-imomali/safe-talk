@@ -8,20 +8,21 @@ import (
 func InitRoutes(h Handler) http.Handler {
 	//gin.SetMode(gin.ReleaseMode)
 	e := gin.New()
-	e.Use(gin.Recovery(), h.Logger())
+	e.Use(gin.Recovery(), h.Logger(), h.cors())
 	{
 		e.GET("/ping", h.ping)
 		e.POST("/sign-up", h.registration)
 		e.POST("/sign-in", h.signIn)
 		e.POST("/reset-password", h.resetPassword)
 	}
-	chats := e.Group("", gin.Recovery(), h.auth(), h.Logger())
+	chats := e.Group("", gin.Recovery(), h.auth(), h.cors(), h.Logger())
 	{
 		chats.POST("/chat", h.createChat)
 		chats.GET("/chat-history", h.getChatHistory)
 		chats.GET("/user-chats", h.getUserChats)
+		chats.GET("/user", h.getUserByLogin)
 	}
-	rtConnection := e.Group("/connection", gin.Recovery(), h.auth())
+	rtConnection := e.Group("/connection", gin.Recovery(), h.auth(), h.cors())
 	rtConnection.GET("", h.getConn)
 
 	return e

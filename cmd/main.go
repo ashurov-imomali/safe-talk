@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+
 	l := logger.New()
 	configs, err := config.New()
 	if err != nil {

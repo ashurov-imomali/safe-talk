@@ -8,12 +8,13 @@ import (
 	"github.com/gorilla/websocket"
 	"safe_talk/pkg/models"
 	"safe_talk/pkg/utils"
+	"strings"
 )
 
 func (h *Handler) auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
-		userID, err := utils.JWTConfirm(token)
+		userID, err := utils.JWTConfirm(strings.TrimPrefix(token, "Bearer "))
 		if err != nil {
 			h.l.Errorf("Ошибка при извлечении данных с токена. ОШИБКА: [%v]", err)
 			c.AbortWithStatus(401)
@@ -61,22 +62,15 @@ func (h *Handler) resetPassword(c *gin.Context) {
 }
 
 func (h *Handler) getChatHistory(c *gin.Context) {
-	//token := c.GetHeader("Authorization")
-	//if token == "" {
-	//	c.JSON(401, gin.H{"message": "Не авторизован"})
-	//	return
-	//}
+	chatID := c.Query("chat_id")
 
-	userId := c.Query("user_id")
-
-	messages, err := h.u.GetNewMessages(userId)
+	messages, err := h.u.GetNewMessages(chatID)
 	if err != nil {
 		c.JSON(500, gin.H{"message": err.Error()})
 		return
 	}
 
 	c.JSON(200, messages)
-
 }
 
 var clients map[string]*websocket.Conn
@@ -112,13 +106,13 @@ func (h *Handler) getConn(c *gin.Context) {
 			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
-
-		if err := h.u.AddMessage(models.SMessage{Text: message.Message, FromUser: userID, ToUser: message.UserID}); err != nil {
+		ToUser, err := h.u.AddMessage(models.SMessage{Text: message.Message, FromUser: userID, ChatId: message.ChatId})
+		if err != nil {
 			c.JSON(500, gin.H{"message": "Что то с БД"})
 			return
 		}
-
-		if toConn, ok := clients[message.UserID]; ok {
+		message.FromUser = userID
+		if toConn, ok := clients[ToUser]; ok {
 			b, _ := json.MarshalIndent(message, " ", "")
 			toConn.WriteMessage(websocket.TextMessage, b)
 		}
@@ -152,9 +146,22 @@ func (h *Handler) createChat(c *gin.Context) {
 		return
 	}
 
-	if err := h.u.CreateChat(chat.UserIds); err != nil {
+	chatId, err := h.u.CreateChat(chat.UserIds)
+	if err != nil {
 		c.JSON(500, gin.H{"message": "Ошибка на стороне сервера. Попробуйте позже"})
 		return
 	}
-	c.JSON(200, gin.H{"message": "Успешно! Можете начать общение"})
+	c.JSON(200, gin.H{"chat_id": chatId})
+}
+
+func (h *Handler) getUserByLogin(c *gin.Context) {
+	value := c.Query("login")
+	users, err := h.u.GetUsersByLogin(value)
+	if err != nil {
+		h.l.Errorf("Ошибка при получении данных с БД. ОШИБКА [%v]", err)
+		c.JSON(500, gin.H{"message": "Ошибка на стороне сервера :(("})
+		return
+	}
+
+	c.JSON(200, users)
 }

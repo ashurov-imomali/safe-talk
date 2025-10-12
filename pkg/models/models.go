@@ -1,6 +1,9 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"time"
+)
 
 type AuthData struct {
 	Login    string `json:"login"`
@@ -11,20 +14,23 @@ type AuthData struct {
 type User struct {
 	ID       uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
 	Login    string
-	Password string
-	Keyword  string
+	Password string `json:"-"`
+	Keyword  string `json:"-"`
 }
 
 type Message struct {
-	UserID  string `json:"user_id"`
-	Message string `json:"message"`
+	ChatId   string `json:"chat_id"`
+	Message  string `json:"message"`
+	FromUser string `json:"from_user"`
 }
 
 type SMessage struct {
-	Id       int `gorm:"primaryKey"`
-	Text     string
-	FromUser string
-	ToUser   string
+	Id        int `gorm:"primaryKey"`
+	Text      string
+	FromUser  string
+	ToUser    string
+	ChatId    string
+	CreatedAt time.Time
 }
 
 func (SMessage) TableName() string {

@@ -1,0 +1,492 @@
+openapi: 3.0.0
+info:
+  title: Loan & Deposit API
+  version: 1.0.0
+  description: API сервера для онлайн-займов и депозитов.
+servers:
+  - url: http://localhost:8080
+    description: Local server
+
+paths:
+  /ping:
+    get:
+      summary: Проверка доступности сервера
+      description: Возвращает сообщение "pong" для проверки, что сервер работает.
+      tags: [Health]
+      responses:
+        '200':
+          description: Сервер отвечает
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: pong
+
+  /sign-up:
+    post:
+      summary: Регистрация нового пользователя
+      description: Создает нового пользователя в системе.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthData'
+      responses:
+        '200':
+          description: Успешная регистрация
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Успешная регистрация. Поздравляю :)
+        '400':
+          description: Ошибка клиента (невалидные данные или пользователь уже существует)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: существуюший пользователь. Выберите другой логин
+        '500':
+          description: Ошибка сервера (проблемы с БД)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ошибка при связи с БД. Повторте попытку позже :(
+
+  /sign-in:
+    post:
+      summary: Авторизация пользователя
+      description: Проверяет логин и пароль и возвращает JWT токен.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInData'
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: object
+                    properties:
+                      Token:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      UserId:
+                        type: string
+                        example: 7e5a0a67-0e31-4b34-9d7f-22ccf440c6df
+        '400':
+          description: Ошибка парсинга тела запроса
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ошибка парсинга проверьте теги!
+        '401':
+          description: Некорректный логин или пароль
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Не корректный логин или пароль
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Такого пользователя не существует :(
+        '500':
+          description: Ошибка при работе с БД или генерации токена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ошибка при генерации токена
+  /reset-password:
+    post:
+      summary: Сброс пароля пользователя
+      description: Позволяет пользователю сбросить пароль, если он знает ключевое слово.
+      tags: [ Auth ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthData'
+      responses:
+        '200':
+          description: Пароль успешно сброшен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Успешно. Можете войти в свой аккаунт :)
+        '400':
+          description: Неверное ключевое слово или ошибка парсинга тела
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Не правильное ключевое слово :(
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Такого пользователя не существует :(
+        '500':
+          description: Ошибка при обращении к БД
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ошибка при обрашении к БД :(
+  /user:
+    get:
+      summary: Получить пользователей по логину
+      description: Возвращает список пользователей, логин которых содержит указанное значение.
+      security:
+        - bearerAuth: [ ]   # Требуется токен
+      parameters:
+        - in: query
+          name: login
+          schema:
+            type: string
+          required: true
+          description: Логин или часть логина пользователя для поиска
+      responses:
+        "200":
+          description: Пользователи успешно найдены
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Не авторизован (((
+        "500":
+          description: Ошибка сервера при обращении к БД
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ошибка на стороне сервера :((
+
+  /chat:
+    post:
+      summary: Создание нового чата между пользователями
+      description: Принимает список UUID пользователей и создаёт новый чат.
+      security:
+        - bearerAuth: [ ]
+      tags: [ Chat ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatRequest'
+      responses:
+        '200':
+          description: Чат успешно создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chat_id:
+                    type: string
+                    format: uuid
+                    example: 9d3a4e53-8f1e-4d35-a123-efb8b4a23b72
+        '400':
+          description: Неверные входные данные
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Проверьте данные
+        '500':
+          description: Ошибка на стороне сервера
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ошибка на стороне сервера. Попробуйте позже
+  /chat-history:
+    get:
+      summary: Получить историю сообщений чата
+      description: Возвращает список сообщений для указанного чата.
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - in: query
+          name: chat_id
+          schema:
+            type: string
+          required: true
+          description: UUID чата, для которого нужно получить историю.
+      responses:
+        "200":
+          description: Успешное получение истории сообщений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SMessage"
+        "400":
+          description: Неверные данные запроса
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Проверьте данные
+        "500":
+          description: Ошибка на стороне сервера
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ошибка при получении истории сообщений
+  /user-chats:
+    get:
+      summary: Получить список чатов пользователя
+      description: Возвращает все чаты, в которых участвует текущий авторизованный пользователь.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Список чатов успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chat"
+        "401":
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Не авторизован (((
+        "500":
+          description: Ошибка при работе с БД
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ошибка при обращение к БД
+  /connection:
+    get:
+      summary: WebSocket соединение для чата
+      security:
+        - bearerAuth: [ ]
+      description: >
+        Устанавливает WebSocket соединение для отправки и получения сообщений в чате.
+        После подключения клиент может отправлять JSON-сообщения и получать их от других пользователей.
+
+        Формат отправляемого сообщения:
+        ```json
+        {
+          "chat_id": "71a2e26e-1234-4bcd-97f1-0d8e8a1f2a22",
+          "message": "Привет!"
+        }
+        ```
+
+        Формат получаемого сообщения такой же:
+        ```json
+        {
+          "chat_id": "71a2e26e-1234-4bcd-97f1-0d8e8a1f2a22",
+          "message": "Привет!",
+          "from_user": "8b2f9a1d-12e3-4a6c-b45a-bf4b7c1f6c9d"
+        }
+        ```
+      tags: [ Chat ]
+      responses:
+        '101':
+          description: Switching Protocols — успешное подключение к WebSocket
+        '401':
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: не авторизован
+        '500':
+          description: Ошибка сервера при установке соединения
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Ошибка при открытии WebSocket соединения
+
+components:
+  schemas:
+    Chat:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 71a2e26e-1234-4bcd-97f1-0d8e8a1f2a22
+        user_nick:
+          type: string
+          example: user123
+        last_message:
+          type: string
+          example: Привет, как дела?
+
+    SMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        text:
+          type: string
+          example: Привет, как дела?
+        from_user:
+          type: string
+          example: 8b2f9a1d-12e3-4a6c-b45a-bf4b7c1f6c9d
+        to_user:
+          type: string
+          example: e12d91c4-8ac1-4675-a39a-41f04c889a15
+        chat_id:
+          type: string
+          example: 71a2e26e-1234-4bcd-97f1-0d8e8a1f2a22
+        created_at:
+          type: string
+          format: date-time
+          example: 2025-10-12T18:32:45Z
+
+    CreateChatRequest:
+      type: object
+      required: [ user_ids ]
+      properties:
+        user_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          example: [ "c1a7a3e2-3f1f-4d9a-9b9f-6e9f7bdfc6b2", "a4b3e2d1-7f9c-4a8e-b3a4-0c5d2f6e3a91" ]
+
+    SignInData:
+      type: object
+      required: [login, password]
+      properties:
+        login:
+          type: string
+          example: user123
+        password:
+          type: string
+          example: StrongPass123!
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 7e5a0a67-0e31-4b34-9d7f-22ccf440c6df
+        login:
+          type: string
+          example: user123
+    AuthData:
+      type: object
+      required: [login, password]
+      properties:
+        login:
+          type: string
+          example: user123
+        password:
+          type: string
+          example: StrongPass123!
+        keyword:
+          type: string
+          example: my_pet_name
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
