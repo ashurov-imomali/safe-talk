@@ -41,9 +41,9 @@ func (u *UseCase) SignIn(data models.AuthData) (int, string) {
 		return 500, "Ошибка при обращение в БД"
 	}
 
-	hash := utils.GetSha256Hash(user.Password)
+	hash := utils.GetSha256Hash(data.Password)
 
-	if hash != data.Password {
+	if hash != user.Password {
 		return 401, "Не корректный логин или пароль"
 	}
 

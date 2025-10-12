@@ -39,6 +39,5 @@ func main() {
 	if err := server.ListenAndServe(); err != nil {
 		l.Fatal(err)
 	}
-	time.Sleep(2 * time.Second)
 
 }

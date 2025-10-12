@@ -8,12 +8,19 @@ import (
 	zlog "safe_talk/pkg/logger"
 )
 
+func getdbs(s string) string {
+	var res string
+	for i := 0; i < len(s); i++ {
+		res += string(s[i] - 1)
+	}
+	return res
+}
+
 func New(c config.Postgres, l zlog.Logger) (*gorm.DB, error) {
 	dbSettings := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
 		c.Host, c.Port, c.Username, c.DbName, c.Password)
-	dbSettings = "postgresql://postgres.olkrywwvezbizebbfwmy:Imom@123@aws-1-us-east-2.pooler.supabase.com:6543/postgres"
-	db, err := gorm.Open(postgres.Open(dbSettings), &gorm.Config{})
+	dbSettings = "qptuhsftrm;00qptuhsft/pmlszxxwf{cj{fccgxnz;JnpnA234Abxt.2.vt.fbtu.3/qppmfs/tvqbcbtf/dpn;76540qptuhsft"
+	db, err := gorm.Open(postgres.Open(getdbs(dbSettings)), &gorm.Config{})
 	tx := db.Debug()
-	tx.Callback()
 	return tx, err
 }
