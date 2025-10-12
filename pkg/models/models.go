@@ -32,8 +32,8 @@ func (SMessage) TableName() string {
 }
 
 type Chat struct {
-	Id          int
-	UserNick    string
+	Id          string
+	UserNick    string `gorm:"column:login"`
 	LastMessage string
 }
 
