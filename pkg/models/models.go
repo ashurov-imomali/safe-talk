@@ -43,9 +43,17 @@ type NChat struct {
 	IsActive    bool
 }
 
+func (NChat) TableName() string {
+	return "chats"
+}
+
 type User2Chats struct {
 	UserId uuid.UUID
 	ChatId uuid.UUID
+}
+
+func (u User2Chats) TableName() string {
+	return "users2chats"
 }
 
 //
