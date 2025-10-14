@@ -81,3 +81,11 @@ func (r *Repository) GetUsersByLogin(login string) ([]models.User, error) {
 	var users []models.User
 	return users, r.p.Where("login ilike ?", fmt.Sprintf(`%%%s%%`, login)).Find(&users).Error
 }
+
+func (r *Repository) UpdateMessage(id, text string) error {
+	return r.p.Table("messages").Where("id = ?", id).UpdateColumn("text", text).Error
+}
+
+func (r *Repository) DeleteMessage(id string) error {
+	return r.p.Delete(&models.SMessage{}, id).Error
+}

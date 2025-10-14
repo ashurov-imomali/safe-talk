@@ -21,6 +21,8 @@ func InitRoutes(h Handler) http.Handler {
 		chats.GET("/chat-history", h.getChatHistory)
 		chats.GET("/user-chats", h.getUserChats)
 		chats.GET("/user", h.getUserByLogin)
+		chats.PUT("/message", h.updateMessage)
+		chats.DELETE("/message", h.deleteMessage)
 	}
 	rtConnection := e.Group("/connection", gin.Recovery(), h.auth(), h.cors())
 	rtConnection.GET("", h.getConn)

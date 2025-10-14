@@ -165,3 +165,32 @@ func (h *Handler) getUserByLogin(c *gin.Context) {
 
 	c.JSON(200, users)
 }
+
+func (h *Handler) updateMessage(c *gin.Context) {
+	updMEssage := struct {
+		Id    string
+		NText string
+	}{}
+
+	if err := c.ShouldBindJSON(&updMEssage); err != nil {
+		c.JSON(400, gin.H{"message": "Не корректные данные"})
+		return
+	}
+
+	if err := h.u.UpdateMessage(updMEssage.Id, updMEssage.NText); err != nil {
+		c.JSON(500, gin.H{"message": "Внутренная ошибка :))"})
+		h.l.Errorf("Ошибка при обоашении к БД. ОШИБКА %v", err)
+		return
+	}
+	c.JSON(200, gin.H{"message": "Успешно обновлено :)"})
+}
+
+func (h *Handler) deleteMessage(c *gin.Context) {
+	id := c.Query("message_id")
+	if err := h.u.DeleteMessage(id); err != nil {
+		c.JSON(500, gin.H{"message": "Внутренная ошибка :))"})
+		h.l.Errorf("Ошибка при обоашении к БД. ОШИБКА %v", err)
+		return
+	}
+	c.JSON(200, gin.H{"message": "Успешно удалено :)"})
+}

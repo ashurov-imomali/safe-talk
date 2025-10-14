@@ -136,3 +136,11 @@ func (u *UseCase) CreateChat(userIDs []uuid.UUID) (string, error) {
 	return chatId.String(), nil
 
 }
+
+func (u *UseCase) UpdateMessage(id, text string) error {
+	return u.r.UpdateMessage(id, text)
+}
+
+func (u *UseCase) DeleteMessage(id string) error {
+	return u.r.DeleteMessage(id)
+}
