@@ -51,11 +51,15 @@ func (r *Repository) GetUserChat(userId string) ([]models.Chat, error) {
 	//select c.id, u.login, c.last_message from chats c
 	//	join users2chats u2c on c.id = u2c.chat_id and u2c.user_id = ''
 	//	join users u on u2c.user_id = u.id;
+	s := `with temp as (
+	select chat_id from users2chats where user_id = ?
+		)
+		select c.id, u.login, c.last_message from temp t
+			join users2chats u2c on u2c.chat_id = t.chat_id and u2c.user_id != ?
+			join chats c on t.chat_id = c.id
+			join users u on u2c.user_id = u.id;`
 	var result []models.Chat
-	return result, r.p.Select("c.id, u.login, c.last_message").Table("chats c").
-		Joins("join users2chats u2c on c.id = u2c.chat_id and u2c.user_id = ?", userId).
-		Joins("join users u on u2c.user_id = u.id").
-		Scan(&result).Error
+	return result, r.p.Raw(s, userId, userId).Scan(&result).Error
 }
 
 func (r *Repository) CreateChat(c models.NChat) (uuid.UUID, error) {
