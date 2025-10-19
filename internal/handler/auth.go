@@ -180,7 +180,10 @@ func (h *Handler) updateMessage(c *gin.Context) {
 		c.JSON(400, gin.H{"message": "Не корректные данные"})
 		return
 	}
-
+	if updMEssage.NText == "" {
+		c.JSON(400, gin.H{"message": "Поле сообщения не может быть пустым!"})
+		return
+	}
 	if err := h.u.UpdateMessage(updMEssage.Id, updMEssage.NText); err != nil {
 		c.JSON(500, gin.H{"message": "Внутренная ошибка :))"})
 		h.l.Errorf("Ошибка при обоашении к БД. ОШИБКА %v", err)
