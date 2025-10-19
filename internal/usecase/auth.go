@@ -111,6 +111,7 @@ func (u *UseCase) AddMessage(msg models.SMessage) (string, error) {
 		ChatId:   msg.ChatId,
 		FromUser: msg.FromUser,
 		ToUser:   user.ID.String(),
+		Type:     msg.Type,
 	}); err != nil {
 		u.l.Errorf("Ошибка при добавлении сообщения БД. ОШИБКА %v", err)
 		return "", err

@@ -110,7 +110,7 @@ func (h *Handler) getConn(c *gin.Context) {
 			c.JSON(400, gin.H{"message": "Поле сообщения не может быть пустой!"})
 			return
 		}
-		ToUser, err := h.u.AddMessage(models.SMessage{Text: message.Message, FromUser: userID, ChatId: message.ChatId})
+		ToUser, err := h.u.AddMessage(models.SMessage{Type: 1, Text: message.Message, FromUser: userID, ChatId: message.ChatId})
 		if err != nil {
 			c.JSON(500, gin.H{"message": "Что то с БД"})
 			return
@@ -230,7 +230,7 @@ func (h *Handler) sendFile(c *gin.Context) {
 		c.JSON(500, gin.H{"message": "Ошибка при отправки файла"})
 		return
 	}
-	_, err = h.u.AddMessage(models.SMessage{Text: filePath, FromUser: value.(string), ChatId: chatId})
+	_, err = h.u.AddMessage(models.SMessage{Text: filePath, FromUser: value.(string), ChatId: chatId, Type: 2})
 	if err != nil {
 		c.JSON(500, gin.H{"message": "Ошибка при отправки сообщения"})
 		return

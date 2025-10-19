@@ -32,6 +32,7 @@ type SMessage struct {
 	ToUser    string
 	ChatId    string
 	CreatedAt time.Time
+	Type      int
 }
 
 func (SMessage) TableName() string {
