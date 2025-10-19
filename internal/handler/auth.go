@@ -116,6 +116,7 @@ func (h *Handler) getConn(c *gin.Context) {
 			return
 		}
 		message.FromUser = userID
+		message.Type = 1
 		if toConn, ok := clients[ToUser]; ok {
 			b, _ := json.MarshalIndent(message, " ", "")
 			toConn.WriteMessage(websocket.TextMessage, b)
@@ -203,21 +204,58 @@ func (h *Handler) deleteMessage(c *gin.Context) {
 }
 
 func (h *Handler) sendFile(c *gin.Context) {
+	toUser := c.Query("user_id")
+	if toUser == "" {
+		c.JSON(400, gin.H{"message": "Укажите ID пользователя"})
+		return
+	}
+	chatId := c.Query("chat_id")
+	if chatId == "" {
+		c.JSON(400, gin.H{"message": "Укажите ID чата"})
+		return
+	}
+	value, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(401, gin.H{"message": "Не авторизован"})
+		return
+	}
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		c.JSON(400, gin.H{"message": "Ошибка на стороне клиента (*_*)"})
 		return
 	}
 	defer file.Close()
-	value, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(401, gin.H{"message": "Не авторизован"})
-		return
-	}
-	if err := h.u.SaveFileToServer(value.(string), header.Filename, file); err != nil {
+	filePath, err := h.u.SaveFileToServer(toUser, header.Filename, file)
+	if err != nil {
 		c.JSON(500, gin.H{"message": "Ошибка при отправки файла"})
 		return
 	}
+	_, err = h.u.AddMessage(models.SMessage{Text: filePath, FromUser: value.(string), ChatId: chatId})
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Ошибка при отправки сообщения"})
+		return
+	}
+	if err := h.u.UpdateLastMessage(chatId, "[SEND FILE]"); err != nil {
+		h.l.Errorf("Ошибка при обновлении last_message. Ошибка %v", err)
+	}
 
-	c.JSON(200, gin.H{"message": "Успешно доставленно"})
+	if conn, ok := clients[toUser]; ok {
+		msg := models.Message{
+			Type:     2,
+			Message:  filePath,
+			FromUser: value.(string),
+		}
+		b, _ := json.Marshal(&msg)
+		conn.WriteMessage(websocket.TextMessage, b)
+	}
+	c.JSON(200, gin.H{"filePath": filePath})
+}
+
+func (h *Handler) getFile(c *gin.Context) {
+	value := c.Query("file")
+	if value == "" {
+		c.JSON(400, gin.H{"message": "Укажите путь к файлу"})
+		return
+	}
+	c.FileAttachment("./upload/"+value, value)
 }

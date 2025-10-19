@@ -22,6 +22,7 @@ type Message struct {
 	ChatId   string `json:"chat_id"`
 	Message  string `json:"message"`
 	FromUser string `json:"from_user"`
+	Type     int    `json:"type"`
 }
 
 type SMessage struct {

@@ -23,10 +23,12 @@ func InitRoutes(h Handler) http.Handler {
 		chats.GET("/user", h.getUserByLogin)
 		chats.PUT("/message", h.updateMessage)
 		chats.DELETE("/message", h.deleteMessage)
+		chats.POST("/file", h.sendFile)
+		chats.GET("/file", h.getFile)
 	}
+
 	rtConnection := e.Group("/connection", gin.Recovery(), h.auth(), h.cors())
 	rtConnection.GET("", h.getConn)
-	rtConnection.POST("/file", h.sendFile)
 
 	return e
 }

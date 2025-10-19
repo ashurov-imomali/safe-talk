@@ -8,6 +8,7 @@ import (
 	"os"
 	"safe_talk/pkg/models"
 	"safe_talk/pkg/utils"
+	"time"
 )
 
 func (u *UseCase) SignUp(data models.AuthData) (int, string) {
@@ -158,17 +159,22 @@ func (u *UseCase) DeleteMessage(id string) error {
 	return u.r.DeleteMessage(id)
 }
 
-func (u *UseCase) SaveFileToServer(userID, fileName string, file io.Reader) error {
-	fileName = fmt.Sprintf("./upload/user_%s_file_%s", userID, fileName)
-	cFile, err := os.Create(fileName)
+func (u *UseCase) SaveFileToServer(userID, fileName string, file io.Reader) (string, error) {
+	fileName = fmt.Sprintf("%s_%d_%s", userID, time.Now().Unix(), fileName)
+	cFile, err := os.Create("./upload/" + fileName)
 	if err != nil {
 		u.l.Errorf("Ошибка при создании файла. Ошибка %v", err)
-		return err
+		return "", err
 	}
+	defer cFile.Close()
 	_, err = io.Copy(cFile, file)
 	if err != nil {
 		u.l.Errorf("Ошибка при записи данных в файл")
-		return err
+		return "", err
 	}
-	return nil
+	return fileName, nil
+}
+
+func (u *UseCase) UpdateLastMessage(chatId, text string) error {
+	return u.r.UpdateLastMessage(chatId, text)
 }
