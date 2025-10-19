@@ -106,6 +106,10 @@ func (h *Handler) getConn(c *gin.Context) {
 			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
+		if message.Message == "" {
+			c.JSON(400, gin.H{"message": "Поле сообщения не может быть пустой!"})
+			return
+		}
 		ToUser, err := h.u.AddMessage(models.SMessage{Text: message.Message, FromUser: userID, ChatId: message.ChatId})
 		if err != nil {
 			c.JSON(500, gin.H{"message": "Что то с БД"})
