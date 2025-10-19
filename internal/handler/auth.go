@@ -146,12 +146,12 @@ func (h *Handler) createChat(c *gin.Context) {
 		return
 	}
 
-	chatId, err := h.u.CreateChat(chat.UserIds)
+	chatId, status, err := h.u.CreateChat(chat.UserIds)
 	if err != nil {
-		c.JSON(500, gin.H{"message": "Ошибка на стороне сервера. Попробуйте позже"})
+		c.JSON(status, gin.H{"message": "Ошибка в БД или существующий чат"})
 		return
 	}
-	c.JSON(200, gin.H{"chat_id": chatId})
+	c.JSON(status, gin.H{"chat_id": chatId})
 }
 
 func (h *Handler) getUserByLogin(c *gin.Context) {
@@ -168,7 +168,7 @@ func (h *Handler) getUserByLogin(c *gin.Context) {
 
 func (h *Handler) updateMessage(c *gin.Context) {
 	updMEssage := struct {
-		Id    string
+		Id    interface{}
 		NText string
 	}{}
 
@@ -193,4 +193,24 @@ func (h *Handler) deleteMessage(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"message": "Успешно удалено :)"})
+}
+
+func (h *Handler) sendFile(c *gin.Context) {
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Ошибка на стороне клиента (*_*)"})
+		return
+	}
+	defer file.Close()
+	value, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(401, gin.H{"message": "Не авторизован"})
+		return
+	}
+	if err := h.u.SaveFileToServer(value.(string), header.Filename, file); err != nil {
+		c.JSON(500, gin.H{"message": "Ошибка при отправки файла"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "Успешно доставленно"})
 }

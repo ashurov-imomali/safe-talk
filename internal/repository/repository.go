@@ -62,6 +62,19 @@ func (r *Repository) GetUserChat(userId string) ([]models.Chat, error) {
 	return result, r.p.Raw(s, userId, userId).Scan(&result).Error
 }
 
+func (r *Repository) GetChatByUserIds(userOId, userTwoId string) (models.User2Chats, bool, error) {
+	var res models.User2Chats
+	s := `with temp as (
+    select chat_id from users2chats where user_id = ?
+)
+select * from users2chats where user_id = ? and chat_id in (select chat_id from temp)`
+	err := r.p.Raw(s, userOId, userTwoId).First(&res).Error
+	if err != nil {
+		return res, errors.Is(err, gorm.ErrRecordNotFound), err
+	}
+	return res, false, nil
+}
+
 func (r *Repository) CreateChat(c models.NChat) (uuid.UUID, error) {
 	return c.ID, r.p.Create(&c).Error
 }
@@ -86,10 +99,14 @@ func (r *Repository) GetUsersByLogin(login string) ([]models.User, error) {
 	return users, r.p.Where("login ilike ?", fmt.Sprintf(`%%%s%%`, login)).Find(&users).Error
 }
 
-func (r *Repository) UpdateMessage(id, text string) error {
+func (r *Repository) UpdateMessage(id interface{}, text string) error {
 	return r.p.Table("messages").Where("id = ?", id).UpdateColumn("text", text).Error
 }
 
 func (r *Repository) DeleteMessage(id string) error {
 	return r.p.Delete(&models.SMessage{}, id).Error
+}
+
+func (r *Repository) UpdateLastMessage(chatId, message string) error {
+	return r.p.Table("chats").Where("id = ?", chatId).Update("last_message", message).Error
 }

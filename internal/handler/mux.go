@@ -15,7 +15,7 @@ func InitRoutes(h Handler) http.Handler {
 		e.POST("/sign-in", h.signIn)
 		e.POST("/reset-password", h.resetPassword)
 	}
-	chats := e.Group("", gin.Recovery(), h.auth(), h.cors(), h.Logger())
+	chats := e.Group("", gin.Recovery(), h.auth(), h.cors())
 	{
 		chats.POST("/chat", h.createChat)
 		chats.GET("/chat-history", h.getChatHistory)
@@ -26,6 +26,7 @@ func InitRoutes(h Handler) http.Handler {
 	}
 	rtConnection := e.Group("/connection", gin.Recovery(), h.auth(), h.cors())
 	rtConnection.GET("", h.getConn)
+	rtConnection.POST("/file", h.sendFile)
 
 	return e
 }
